@@ -1,0 +1,13 @@
+<html>
+<body>
+    <form action='' method='post'>
+        <input type='text' id='find' name='find' />
+        <input type='submit'/>
+    </form>
+	{% if users is not None%}
+    {% for user in users %}
+    {{ user.user_name }} <a href='/friend/add/{{user.user_id}}'>添加</a>
+    {% end %}
+    {% end %}
+</body>
+</html>

@@ -1,0 +1,67 @@
+<html>
+<head>
+    <script src="static/jquery.js" type="text/javascript"></script>
+    <script>
+        var ws = new WebSocket('ws://localhost:8009/soc');
+        ws.onopen = function(){
+            var ms = {type:'sys', message:document.cookie.substring(document.cookie.indexOf('user_name')), to:'all'};
+            ws.send(JSON.stringify(ms));
+        }
+        //接收消息
+        ws.onmessage = function(event){
+            var table = document.getElementById('message');
+            table.insertRow().insertCell().innerHTML = event.data;
+            var data = eval('(' + event.data + ')');
+            ({
+                'sys':function(){
+                    var cell = table.insertRow().insertCell();
+                    cell.colSpan = 2;
+                    cell.innerHTML = data['message'];
+                },
+
+                'user':function(){
+                    var row = table.insertRow();
+                    row.insertCell().innerHTML = data['id'];
+                    row.insertCell().innerHTML = data['message'];
+                }
+            
+            }[data['type']])();
+        }
+
+        //发送消息
+        function send(){
+            var ms = {type:'user', message:document.getElementById('chat').value, to:document.getElementById('to').value};
+            ws.send(JSON.stringify(ms));
+            document.getElementById('chat').value = "";
+            document.getElementById('to').value = "";
+        }
+        //find friend
+        function find(){
+            $.ajax({
+                type:"post",
+                url:'/test',
+                data:{name:'bwli'},
+                success:function(data){
+                    alert(data)
+                },
+                error:function(){
+                    alert(error)
+                }
+            });
+        }
+    </script>
+</head>
+
+<body>
+    welcome:{{user}},{{user.user_name}}
+    <table id='message'></table>
+    message:<input id='chat' type='text' />
+    to:<input id='to' type='text' />
+    <button onclick='send()'>send</button>
+    add friend:
+    <form method='post' action='/friend'>
+    <input id='friend' type='text' />
+    <input type='submit'>
+    </form>
+</body>
+</html>
