@@ -30,8 +30,16 @@ class Friend_Relation(BaseModel):
     friend_relation_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user_table.user_id'), nullable=False)
     friend_id = Column(Integer, ForeignKey('user_table.user_id'), nullable=False)
-    start_date = Column(DATE, nullable=False)
-    end_date = Column(DATE, nullable=True)
+    add_verify = Column(String(30))
+    friend_status = Column(String(30))
+    start_date = Column(DATETIME, nullable=False)
+    end_date = Column(DATETIME, nullable=True)
+    def __init__(self, user_id, friend_id, add_verify, friend_status, start_date):
+        self.user_id = user_id
+        self.friend_id = friend_id
+        self.add_verify = add_verify
+        self.friend_status = friend_status
+        self.start_date = start_date
 
 class Group(BaseModel):
     __tablename__ = 'group_table'
@@ -47,6 +55,23 @@ class User_Group_Relation(BaseModel):
     user_group_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('user_table.user_id'), nullable=False)
     group_id = Column(Integer, ForeignKey('group_table.group_id'), nullable=False)
+
+class Friend_Add_Info(BaseModel):
+    __tablename__ = 'friend_add_info'
+
+    friend_add_id = Column(Integer, primary_key=True)
+    friend_add_from = Column(Integer, ForeignKey('user_table.user_id'))
+    friend_add_to = Column(Integer, ForeignKey('user_table.user_id'))
+    friend_add_verify = Column(String(30))
+    friend_add_time = Column(DATETIME)
+    friend_add_status = Column(String(10))
+    
+    def __init__(self, friend_add_from, friend_add_to, friend_add_verify, friend_add_time, friend_add_status):
+        self.friend_add_from = friend_add_from
+        self.friend_add_to = friend_add_to
+        self.friend_add_verify = friend_add_verify
+        self.friend_add_time = friend_add_time
+        self.friend_add_status = friend_add_status
 
 class Message:
     message_type = ''

@@ -1,12 +1,27 @@
 <html>
+<script src="static/jquery.js" type="text/javascript"></script>script>
+<script type="text/javascript">
+function disp_prompt(user_name, user_id){
+    var name=prompt("您是否要添加:"+user_name+", "+user_id+"请输入验证信息","");
+    var friend_add_info={to:user_id, verify:name, add_status:0}
+    if (name!=null && name!=""){
+		$.ajax({
+			 type:"post",//post get
+			 url:"/friend/add",//地址
+             data:friend_add_info,
+             success:function(data){alert(data)}
+		});
+    }
+}
+</script>
 <body>
-    <form action='' method='post'>
+    <form action='/friend' method='post'>
         <input type='text' id='find' name='find' />
         <input type='submit'/>
     </form>
 	{% if users is not None%}
     {% for user in users %}
-    {{ user.user_name }} <a href='/friend/add/{{user.user_id}}'>添加</a>
+    {{ user.user_name }} <a href="javascript:disp_prompt('{{ user.user_name }}','{{user.user_id}}')">添加</a>
     {% end %}
     {% end %}
 </body>

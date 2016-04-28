@@ -3,9 +3,37 @@
     <script src="static/jquery.js" type="text/javascript"></script>
     <script>
         var ws = new WebSocket('ws://localhost:8009/soc');
+        /**
         ws.onopen = function(){
             var ms = {type:'sys', message:document.cookie.substring(document.cookie.indexOf('user_name')), to:'all'};
             ws.send(JSON.stringify(ms));
+        }
+        **/
+        String.prototype.format=function(){
+            if(arguments.length==0) return this;
+            for(var s=this, i=0; i<arguments.length; i++)
+　              s=s.replace(new RegExp("\\{"+i+"\\}","g"), arguments[i]);
+            return s;
+        };
+
+        function show_Confirm(i, user_id){
+            if(i == -1)
+                var confirm_str = '确认拒绝来自' + user_id + ' 的好友添加请求';
+            else
+                var confirm_str = '确认添加 ' + user_id + '为好友'
+            var confirm_box = confirm(confirm_str);
+            if(confirm_box == true){
+                var confirm_info = {add_status:i, to:user_id}
+                $.ajax({
+                    type:'post',
+                    url:"friend/add",
+                    data:confirm_info,
+                    success:function(data){
+                        alert(data)
+                    }
+                
+                })
+            }
         }
         //接收消息
         ws.onmessage = function(event){
@@ -14,23 +42,31 @@
             var data = eval('(' + event.data + ')');
             ({
                 'sys':function(){
-                    var cell = table.insertRow().insertCell();
-                    cell.colSpan = 2;
-                    cell.innerHTML = data['message'];
+                    var message_content = data['message_content'];
+                    var sys_content_type = message_content['content_type'];
+                    var cell = table.insertRow();
+                    alert(sys_content_type);
+                    if(sys_content_type == 'add_friend'){
+                        cell.insertCell().innerHTML = message_content['user_id']+','+message_content['verify'];
+                        cell.insertCell().innerHTML = "<a href='javascript:show_Confirm(1,{0})'>add</a>,<a href='javascript:show_Confirm(-1,{0})'>cancel</a>".format(message_content['user_id'])
+                    }else{
+                        cell.insertCell().innerHTML = message_content;
+                    }
+
                 },
 
                 'user':function(){
                     var row = table.insertRow();
-                    row.insertCell().innerHTML = data['id'];
-                    row.insertCell().innerHTML = data['message'];
+                    row.insertCell().innerHTML = data['message_from'];
+                    row.insertCell().innerHTML = data['message_content'];
                 }
             
-            }[data['type']])();
+            }[data['message_type']])();
         }
 
         //发送消息
         function send(){
-            var ms = {type:'user', message:document.getElementById('chat').value, to:document.getElementById('to').value};
+            var ms = {message_content:document.getElementById('chat').value, message_to:document.getElementById('to').value};
             ws.send(JSON.stringify(ms));
             document.getElementById('chat').value = "";
             document.getElementById('to').value = "";
@@ -53,15 +89,11 @@
 </head>
 
 <body>
-    welcome:{{user}},{{user.user_name}}
+    welcome:{{user}},{{user.user_name}}, {{user.user_id}}
     <table id='message'></table>
     message:<input id='chat' type='text' />
     to:<input id='to' type='text' />
-    <button onclick='send()'>send</button>
-    add friend:
-    <form method='post' action='/friend'>
-    <input id='friend' type='text' />
-    <input type='submit'>
-    </form>
+    <button onclick='send()'>send</button></br>
+    add friend:<a href='/friend'>添加好友</a>
 </body>
 </html>
