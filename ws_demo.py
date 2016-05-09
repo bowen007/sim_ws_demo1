@@ -17,7 +17,7 @@ from model import *
 define("port", default=8009, help="run on the given port", type=int)
 class Application(tornado.web.Application):
     def __init__(self):
-        handlers = [(r'/', IndexHandler), (r'/soc', SocketHandler), (r'/login', LoginHandler), (r'/register', RegisterHandler), (r'/friend', FriendListHandler), (r'/friend/add', FriendHandler)]
+        handlers = [(r'/', IndexHandler), (r'/soc', SocketHandler), (r'/login', LoginHandler), (r'/register', RegisterHandler), (r'/friend', SearchListHandler), (r'/friend/add', FriendHandler),(r'/friendlist/([0-9Xx\-]+)', FriendListHandler), (r'/demo', DemoHandler), (r'/dandan', DanHandler)]
         settings = dict(
             template_path = os.path.join(os.path.dirname(__file__), "templates"),
             static_path = os.path.join(os.path.dirname(__file__), "static"),
@@ -31,6 +31,17 @@ class Application(tornado.web.Application):
 class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         return self.get_secure_cookie('username')
+
+class DemoHandler(BaseHandler):
+    def get(self):
+        self.render('demo.html')
+    
+    def post(self):
+        print dir(self)
+
+class DanHandler(BaseHandler):
+    def get(self):
+        self.render('dandan.html')
 
 class FriendHandler(BaseHandler):
     def post(self):
@@ -74,7 +85,7 @@ class FriendHandler(BaseHandler):
                 self.write('refuse add friend request success')
         db_session.commit()
 
-class FriendListHandler(BaseHandler):
+class SearchListHandler(BaseHandler):
     def get(self):
         print dir(self)
         print '+++++++++++++',self.get_current_user(),self.cookies,self.request.uri,'=====',self.get_secure_cookie('user_id')
@@ -111,7 +122,7 @@ class LoginHandler(BaseHandler):
         if user:
             self.set_secure_cookie('user_name', user.user_name)
             self.set_secure_cookie('user_id', str(user.user_id))
-            self.render('index.html',user = user)
+            self.render('dandan.html',user = user)
         else:
             self.render('error.html', message= '用户名或密码错误')
 
@@ -174,6 +185,41 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             for c in SocketHandler.clients:
                 c.write_message(json.dumps(message, default=convert_to_builtin_type))
 
+class FriendListHandler(BaseHandler):
+    def get(self, user_id):
+        db_session = self.application.db
+        friend_list = get_friend_list(user_id, db_session)
+        friend_json =[]
+        for friend in friend_list:
+            if int(user_id) == int(friend.user_id):
+                user = db_session.query(User).filter_by(user_id = friend.friend_id).first()
+            else:
+                user = db_session.query(User).filter_by(user_id = friend.user_id).first()
+            friend_json.append([user.user_id, user.user_name])
+        self.write(json.dumps(friend_json))
+    
+    def post(self, user_id):
+        db_session = self.application.db
+        friend_list = get_friend_list(user_id, db_session)
+        friend_json = {}
+        friend_json['status'] = 1
+        friend_json['msg'] = 'ok'
+        friend_json['data'] = list()
+        data_dict = {}
+        data_dict['name'] = 'online friend'
+        data_dict['nums'] = '2'
+        data_dict['id'] =1
+        data_dict['item'] = list()
+        for friend in friend_list:
+            a = friend.user_id
+            user = db_session.query(User).filter_by(user_id = a).first()
+            item_dict = {}
+            item_dict['id'] = user.user_id
+            item_dict['name'] = user.user_name
+            data_dict['item'].append(item_dict)
+        friend_json['data'].append(data_dict)
+        print json.dumps(friend_json)
+        self.write(json.dumps(friend_json))
 
 def convert_to_builtin_type(obj):
     u'''转换函数，将对象转换成json'''
@@ -186,14 +232,8 @@ def convert_to_builtin_type(obj):
 def get_friend_list(user_id, db_session):
     query = db_session.query(Friend_Relation)
     friend_list = query.filter(Friend_Relation.user_id == user_id).all()
-    print '!!!!!!!!!!!!!', friend_list
     friend_list.extend(query.filter(Friend_Relation.friend_id == user_id).all())
-    print '!!!!!!!!!!!!!', friend_list
     friend_list = set(friend_list)
-    for friend in friend_list:
-        a = friend.user_id
-        user = db_session.query(User).filter_by(user_id = a).first()
-        print user.__dict__
     return friend_list
 
 def main():
